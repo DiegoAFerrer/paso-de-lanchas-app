@@ -4,6 +4,9 @@ import { ModulePlaceholder } from "@/components/module-placeholder";
 import { requireRole } from "@/lib/auth/require-role";
 
 export const metadata: Metadata = { title: "Pasajero" };
+import { Button } from "@/components/ui/button";
+
+<Button>Prueba</Button>
 
 export default async function PassengerPage() {
   const user = await requireRole("PASSENGER");
