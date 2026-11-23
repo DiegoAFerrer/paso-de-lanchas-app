@@ -63,6 +63,10 @@ repositorio:
 - **Login listo (issue #7, 2026-11-22):** inicio y cierre de sesión por rol, `requireRole` / `assertRole` /
   `requireApiRole` en `src/lib/auth/require-role.ts` y `src/proxy.ts`. Uso en docs/MODULOS_Y_RESPONSABLES.md.
   Las demás pantallas por rol siguen temporales.
+- **Componentes base listos (issue #19, 2026-11-23):** shadcn/ui instalado con los colores del prototipo y navegación por
+  rol (`src/components/navigation/`). Para agregar una sección al menú, edita el arreglo `items` del `layout.tsx` de
+  su rol. Los enlaces de cada sección dan 404 hasta que su dueño cree la página. Las 10 secciones del menú de admin
+  son **provisionales** hasta que José confirme las del prototipo.
 
 ## Stack (versiones instaladas)
 
@@ -73,6 +77,7 @@ repositorio:
   configuración en `prisma.config.ts`). Prisma 7.10.1 está **fijado**: npm marca como "latest" la 8.0 RC, no actualizar.
 - **Zod 4**, **@node-rs/argon2**, **otplib** (QR TOTP). Pendientes de instalar por su módulo: html5-qrcode (Cova),
   MapLibre GL (Diego), Serwist (Diego), SDK de Mercado Pago (Cova), shadcn/ui (Diego/José).
+- **Interfaz:** **shadcn/ui** sobre **Base UI** (no Radix: en Base UI se usa la propiedad `render`, no `asChild`). Los colores del prototipo (`brand`,  `ink`, `surface`, `line`…) están en `src/app/globals.css` y las variables de shadcn (`--primary`, `--border`, `--ring`…) apuntan a ellos. Los componentes generados viven en `src/components/ui/`; los propios, en otras carpetas, para que regenerar shadcn no los pise. Nunca vuelvas a correr `shadcn init`: reescribe `globals.css` y `layout.tsx`.
   **Login propio sin librería** (ADR 0002 aceptada): Argon2 + sesiones en la tabla `sessions`.
 - Tiempo real por consultas periódicas (5–10 s). Hosting: **Vercel** + **Neon**. CI: **GitHub Actions**
   (`.github/workflows/ci.yml`).
@@ -150,6 +155,7 @@ npm run format             Prettier
 | 2026-11-22 | Omar (con Claude) | Revisión de los PRs #22–#25; issue #27: índices únicos parciales (una asignación activa por chofer y embarcación, una solicitud de descuento pendiente por pasajero) |
 | 2026-11-22 | Omar (con Claude) | ADR 0002 aceptada: login propio (Argon2 + sesiones en BD, `requireRole` en servidor); se descartan Auth.js y Better Auth (#5) |
 | 2026-11-22 | Omar (con Claude) | Login por rol (#7): Argon2, sesiones en BD con hash del token y cookie HttpOnly, `requireRole`/`assertRole`/`requireApiRole`, `proxy.ts`, pantalla de login y cierre de sesión, bitácora; 40 pruebas unitarias y 10 de Playwright |
+| 2026-11-23 | Diego (con Claude) | Componentes base (#19): shadcn/ui con Base UI y los colores del prototipo en `globals.css`; componentes `button`, `input`, `label`, `field`, `card`, `alert`, `dialog`, `sonner` y `separator` en `src/components/ui/`; navegación en `src/components/navigation/` (barra inferior del pasajero y menú lateral de admin y superadmin); `layout.tsx` por rol; botones de 44 px de alto |
 
 ## Registro de errores y soluciones
 
@@ -159,6 +165,7 @@ npm run format             Prettier
 | 2026-11-17 | `npm i prisma` instaló la 8.0 RC | npm tiene la etiqueta "latest" en una versión candidata | Prisma y @prisma/client fijados en 7.10.1 |
 | 2026-11-22 | Playwright: `Executable doesn't exist ... chrome-headless-shell` | Faltaba descargar el navegador de pruebas en esa computadora | `npx playwright install chromium` (una vez por computadora) |
 | 2026-11-18 | `npm run check` falla en `database-rules.test.ts` | Docker Desktop estaba cerrado (la prueba de integración necesita la base de pruebas) | Abrir Docker Desktop, `docker compose up -d` y `npm run db:test:prepare` (la base de pruebas se vacía al reiniciar Docker) |
+| 2026-11-23 | `Type '"/pasajero"' does not satisfy the constraint '"/"'` en `LayoutProps` | Los tipos de rutas de Next 16 se generan a partir de los `layout.tsx` existentes y estaban desactualizados | `npx next typegen` (o reiniciar `npm run dev`) y, en VS Code, *TypeScript: Restart TS Server* |
 
 ## Datos pendientes de confirmar en campo
 
