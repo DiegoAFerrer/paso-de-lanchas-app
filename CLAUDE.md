@@ -66,6 +66,9 @@ repositorio:
   local). **Contraseñas (#8):** `/recuperar` (enlace de 30 min, un solo uso, cierra todas las sesiones) y
   `/cuenta/cambiar-contrasena` (pide la actual; la contraseña temporal del personal obliga a cambiarla antes de seguir).
   Las demás pantallas por rol siguen temporales.
+- **QR dinámico listo (issue #20, 2026-11-24):** el celular genera el código TOTP sin internet; `verifyQr(payload)` en
+  `src/application/qr/verify-qr.ts` devuelve `userId`, `credentialId` y `timeStep`. **No marca el código como usado**:
+  el abordaje (Cova) debe guardar `credentialId` + `timeStep` dentro de su transacción para garantizar el QR de un solo uso.
 
 ## Stack (versiones instaladas)
 
@@ -157,6 +160,7 @@ npm run format             Prettier
 | 2026-11-22 | Omar (con Claude) | Seguridad del personal (#9): bloqueo por intentos fallidos, computadoras autorizadas con cookie de dispositivo, cierre por inactividad, `dock_id` opcional en `authorized_devices`, script `dev:aprobar-computadoras` |
 | 2026-11-22 | Omar (con Claude) | Registro de pasajero (#6): cuenta pendiente + monedero en $0 + enlace en una transacción, verificación de un solo uso, respuesta igual si el correo existe, correo por SMTP (nodemailer, Mailpit en local) |
 | 2026-11-23 | Omar (con Claude) | Recuperar y cambiar contraseña (#8): enlace de 30 min de un solo uso (máx. 3 cada 30 min), cierre de sesiones, contraseña temporal obligatoria de cambiar (`requireRole`/`assertRole`), aviso por correo del cambio, `InputError` compartido, cuentas de prueba e2e con `globalSetup` |
+| 2026-11-24 | Diego (con Claude) | QR dinámico (#20): dominio `qr-payload` (`PL1.<credencial>.<código>`), cifrado AES-256-GCM del secreto TOTP con `QR_SIGNING_SECRET`, adaptador de otplib, casos de uso `issueQrCredential` y `verifyQr` (±1 paso, reloj inyectado), repositorio Prisma, ruta `POST /api/qr/credential` y pantalla `/pasajero/qr` con IndexedDB, contador y Wake Lock |
 
 ## Registro de errores y soluciones
 
@@ -168,6 +172,10 @@ npm run format             Prettier
 | 2026-11-23 | Playwright: `getByLabel` encuentra dos campos iguales después de navegar | Next.js 16 deja oculta la pantalla anterior al navegar con un enlace | Usar `getByRole("textbox", { name })`, que solo encuentra lo visible |
 | 2026-11-23 | Playwright: `Cannot use 'import.meta' outside a module` al importar Prisma en una prueba | Playwright carga las pruebas como CommonJS y el cliente de Prisma es un módulo ES | Preparar datos con un script `tsx` (`scripts/dev-prepare-e2e-accounts.ts`) desde `globalSetup` |
 | 2026-11-18 | `npm run check` falla en `database-rules.test.ts` | Docker Desktop estaba cerrado (la prueba de integración necesita la base de pruebas) | Abrir Docker Desktop, `docker compose up -d` y `npm run db:test:prepare` (la base de pruebas se vacía al reiniciar Docker) |
+| 2026-11-24 | `Route "/pasajero/qr": Next.js encountered uncached data during prerendering` | Con `cacheComponents`, `requireRole` (cookie + base) se llamaba fuera de `<Suspense>` | Mover `requireRole` a un componente interno y envolverlo en `<Suspense>` en `page.tsx` |
+| 2026-11-24 | Página recargándose sin parar y `Cannot find module @tailwindcss/turbopack` | Un `npm run dev` seguía corriendo mientras `npm ci` reinstalaba `node_modules` | Detener todos los servidores, `rm -rf node_modules .next`, `npm ci` y levantar un solo `npm run dev` |
+| 2026-11-24 | `env.QR_SIGNING_SECRET` es `string \| undefined` | La variable es opcional en `src/lib/env.ts` | Función `getQrSigningSecret()` en `src/infrastructure/qr/qr-key.ts`, que falla con mensaje claro si falta |
+
 
 ## Datos pendientes de confirmar en campo
 
