@@ -1,6 +1,6 @@
 "use client";
 
-import { get, set } from "idb-keyval";
+import { del, get, set } from "idb-keyval";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 
@@ -10,22 +10,30 @@ import { codeForTimeStep } from "@/infrastructure/qr/totp";
 type StoredCredential = { credentialId: string; secret: string; stepSeconds: number };
 type Status = "loading" | "ready" | "offline" | "error";
 
+const storageKey = (userId: string) => `qr:${userId}`;
+
 // Evita dos POST simultáneos (React ejecuta los efectos dos veces en desarrollo).
-let pending: Promise<StoredCredential | "offline"> | null = null;
+let pendingIssue: Promise<StoredCredential> | null = null;
 
-async function loadCredential(userId: string): Promise<StoredCredential | "offline"> {
-  const key = `qr:${userId}`;
+/** true = vigente, false = revocada, null = no se pudo saber (sin red, sesión vencida, error). */
+async function checkActive(credentialId: string): Promise<boolean | null> {
+  try {
+    const response = await fetch(`/api/qr/credential?id=${encodeURIComponent(credentialId)}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const body = (await response.json()) as { active?: unknown };
+    return typeof body.active === "boolean" ? body.active : null;
+  } catch {
+    return null;
+  }
+}
 
-  const saved = await get<StoredCredential>(key);
-  if (saved) return saved;
-
-  if (!navigator.onLine) return "offline";
-
+async function issueNew(userId: string): Promise<StoredCredential> {
   const response = await fetch("/api/qr/credential", { method: "POST" });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
   const issued = (await response.json()) as StoredCredential;
-  await set(key, issued);
+  await set(storageKey(userId), issued);
   return issued;
 }
 
@@ -39,18 +47,41 @@ export function QrScreen({ userId }: { userId: string }) {
   // 1) Conseguir la credencial: del celular, o del servidor si es la primera vez.
   useEffect(() => {
     let cancelled = false;
-    pending ??= loadCredential(userId);
-    pending
-      .then((result) => {
-        if (cancelled) return;
-        if (result === "offline") return setStatus("offline");
-        setCredential(result);
+
+    (async () => {
+      const saved = await get<StoredCredential>(storageKey(userId));
+      if (cancelled) return;
+
+      if (saved) {
+        // 1) Mostrar de inmediato la credencial guardada (funciona sin internet).
+        setCredential(saved);
         setStatus("ready");
-      })
-      .catch(() => !cancelled && setStatus("error"))
-      .finally(() => {
-        pending = null;
+        if (!navigator.onLine) return;
+
+        // 2) Con internet, preguntar si sigue vigente. Solo "false" la descarta.
+        if ((await checkActive(saved.credentialId)) !== false) return;
+        await del(storageKey(userId));
+        if (cancelled) return;
+        setCredential(null);
+        setPayload(null);
+        setStatus("loading");
+      } else if (!navigator.onLine) {
+        setStatus("offline");
+        return;
+      }
+
+      // 3) Pedir una credencial nueva.
+      pendingIssue ??= issueNew(userId).finally(() => {
+        pendingIssue = null;
       });
+      const issued = await pendingIssue;
+      if (cancelled) return;
+      setCredential(issued);
+      setStatus("ready");
+    })().catch(() => {
+      if (!cancelled) setStatus("error");
+    });
+
     return () => {
       cancelled = true;
     };
