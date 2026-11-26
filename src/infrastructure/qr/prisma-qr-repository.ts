@@ -1,12 +1,13 @@
 import type { QrCredentialRepository } from "@/application/qr/ports";
+import { PrismaClient } from "@/generated/prisma/client";
 import { prisma } from "@/infrastructure/db/prisma";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function createPrismaQrRepository(): QrCredentialRepository {
+export function createPrismaQrRepository(client: PrismaClient = prisma): QrCredentialRepository {
   return {
     async replaceActive(userId, encryptedSecret) {
-      return prisma.$transaction(async (tx) => {
+      return client.$transaction(async (tx) => {
         await tx.qrCredential.updateMany({
           where: { userId, revokedAt: null },
           data: { revokedAt: new Date() },
@@ -24,7 +25,7 @@ export function createPrismaQrRepository(): QrCredentialRepository {
       // en lugar de devolver "no existe". Un QR con basura debe dar "inválido".
       if (!UUID.test(id)) return null;
 
-      const row = await prisma.qrCredential.findFirst({
+      const row = await client.qrCredential.findFirst({
         where: { id, revokedAt: null },
         select: { id: true, userId: true, totpSecretEnc: true },
       });
