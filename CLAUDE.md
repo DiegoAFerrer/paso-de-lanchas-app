@@ -73,9 +73,12 @@ repositorio:
 - **Permisos en GitHub (2026-11-23, D26):** equipo `desarrollo` con permiso de escritura (los 5 suben sus ramas al
   repo); en `develop` todo entra por PR con la CI en verde y **solo Omar aprueba y fusiona** (`.github/CODEOWNERS`).
     Las demás pantallas por rol siguen temporales.
-- **QR dinámico listo (issue #20, 2026-11-24):** el celular genera el código TOTP sin internet; `verifyQr(payload)` en
+- **QR dinámico listo (issue #20, 2026-11-25):** el celular genera el código TOTP sin internet; `verifyQr(payload)` en
   `src/application/qr/verify-qr.ts` devuelve `userId`, `credentialId` y `timeStep`. **No marca el código como usado**:
-  el abordaje (Cova) debe guardar `credentialId` + `timeStep` dentro de su transacción para garantizar el QR de un solo uso.
+  el abordaje (Cova/Omar, #44) debe guardar `credentialId` + `timeStep` dentro de su transacción y comprobar que el
+  pasajero siga activo. Al abrir `/pasajero/qr` con internet se consulta si la credencial guardada sigue vigente; si
+  fue revocada (p. ej. por iniciar sesión en otro celular) se pide una nueva. Cerrar sesión borra las credenciales
+  `qr:*` del celular. Cancelar la cuenta (#17) ya revoca `qr_credentials`.
 
 
 ## Stack (versiones instaladas)
@@ -92,6 +95,10 @@ repositorio:
   (`.github/workflows/ci.yml`).
 - Pruebas: **Vitest 5** + **Playwright**. Calidad: ESLint 9 + Prettier (el Markdown no se formatea), Sentry.
 - **Node 24 LTS** (`.node-version`, con fnm). Docker Desktop para los servicios locales.
+- **`QR_SIGNING_SECRET`:** clave para cifrar los secretos TOTP del QR (mínimo 32 caracteres). Opcional en desarrollo,
+  **obligatoria en producción** (`src/lib/env.ts`). Se genera con
+  `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. No cambiarla con credenciales ya
+  emitidas: dejarían de poder descifrarse. Debe existir también en Vercel.
 
 ## Estructura (arquitectura limpia dentro de Next.js)
 
@@ -180,7 +187,7 @@ npm run format             Prettier
 | 2026-11-24 | Omar (con Claude) | Computadoras del muelle (#42): pantalla del superadmin para aprobar (nombre y muelle; la del admin no puede quedar de oficina), renombrar y revocar (borra sus sesiones); columna `authorized_devices.requested_at`; `dev:aprobar-computadoras -- correo` para que las pruebas en paralelo no se crucen |
 | 2026-11-24 | Omar (con Claude) | Revisión de Cova a #55 y #56: cada cambio de cuentas del personal y de computadoras guarda su bitácora **en la misma transacción** (`ChangeAudit`, `auditLogData`); la acción de estado solo acepta DEACTIVATE/REACTIVATE; la computadora de un admin solo se aprueba para **su** muelle |
 | 2026-11-24 | Diego (con Claude) | QR dinámico (#20): dominio `qr-payload` (`PL1.<credencial>.<código>`), cifrado AES-256-GCM del secreto TOTP con `QR_SIGNING_SECRET`, adaptador de otplib, casos de uso `issueQrCredential` y `verifyQr` (±1 paso, reloj inyectado), repositorio Prisma, ruta `POST /api/qr/credential` y pantalla `/pasajero/qr` con IndexedDB, contador y Wake Lock |
-
+| 2026-11-25 | Diego (con Claude) | Revisión del QR (#20): botón "Mostrar mi QR" en el inicio del pasajero; `GET /api/qr/credential` y `isCredentialActiveForUser` para descartar una credencial revocada y pedir una nueva (solo con `active: false` explícito; sin red se conserva la guardada); `LogoutButton` ahora es componente de cliente y borra `qr:*` de IndexedDB (`src/lib/qr-storage.ts`) antes de cerrar sesión; reintento único si dos peticiones chocan con el índice `qr_credentials_one_active_per_user` (P2002); `createPrismaQrRepository(client)` acepta el cliente; prueba de integración del repositorio; `QR_SIGNING_SECRET` obligatoria en producción (`env.ts`, `ci.yml`) y documentada en `.env.example` y `docs/ENTORNO_DESARROLLO.md` |
 
 ## Registro de errores y soluciones
 
@@ -196,7 +203,10 @@ npm run format             Prettier
 | 2026-11-24 | `Route "/pasajero/qr": Next.js encountered uncached data during prerendering` | Con `cacheComponents`, `requireRole` (cookie + base) se llamaba fuera de `<Suspense>` | Mover `requireRole` a un componente interno y envolverlo en `<Suspense>` en `page.tsx` |
 | 2026-11-24 | Página recargándose sin parar y `Cannot find module @tailwindcss/turbopack` | Un `npm run dev` seguía corriendo mientras `npm ci` reinstalaba `node_modules` | Detener todos los servidores, `rm -rf node_modules .next`, `npm ci` y levantar un solo `npm run dev` |
 | 2026-11-24 | `env.QR_SIGNING_SECRET` es `string \| undefined` | La variable es opcional en `src/lib/env.ts` | Función `getQrSigningSecret()` en `src/infrastructure/qr/qr-key.ts`, que falla con mensaje claro si falta |
-
+| 2026-11-25 | Un QR queda inservible tras iniciar sesión en otro celular | El `POST /api/qr/credential` revoca la credencial anterior y el primer celular conservaba la suya en IndexedDB sin volver a preguntar | `GET /api/qr/credential?id=…`: con internet se consulta y, solo si responde `active: false`, se borra `qr:<userId>` y se pide una nueva |
+| 2026-11-25 | `/pasajero/qr` muestra "No pudimos activar tu QR" (500 en el servidor) | `QR_SIGNING_SECRET` vacía en `.env.local`: `.env.example` la trae en blanco | Generarla con el comando de `.env.example` y reiniciar `npm run dev` (Next solo lee las variables al arrancar) |
+| 2026-11-25 | `npm run check` falla con `The table public.users does not exist` en las pruebas de integración | La base de pruebas estaba vacía o sin las migraciones nuevas que entraron al fusionar `develop` | `docker compose up -d`, `npm run db:test:prepare` y volver a correr `npm run check` |
+| 2026-11-25 | `zsh: no matches found: --include=*.ts` al usar `grep` | zsh expande `*.ts` antes de pasarlo a `grep` | Poner el patrón entre comillas: `--include="*.ts"` |
 
 
 ## Datos pendientes de confirmar en campo
