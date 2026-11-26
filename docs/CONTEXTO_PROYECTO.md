@@ -184,6 +184,11 @@ Este proyecto es **ingeniería de software**: todo código debe:
 - Seguridad del personal (#9, D25): bloqueo por intentos, computadoras autorizadas con cookie de dispositivo (solo su
   hash en la base), cierre por inactividad, sesiones cortadas si se retira la computadora y bitácora de cada rechazo.
   Script de desarrollo `npm run dev:aprobar-computadoras` mientras llega la pantalla del superadmin (sprint 3).
+### 2026-11-22 — Tarifas con vigencia (#14)
+- Se agregaron reglas de dominio para categorías y tipos de vehículo, y casos de uso para establecer tarifas, consultar las vigentes y recuperar su historial.
+- El repositorio Prisma cierra la tarifa anterior y crea la nueva dentro de la misma transacción; la restricción PostgreSQL `fares_no_overlap` sigue siendo la última defensa contra traslapes.
+- La pantalla `/admin/tarifas` permite configurar los precios de lancha, peatón y cada tipo de vehículo del transbordador, ver las vigencias y consultar el historial. Página y acción validan el rol `ADMIN`.
+- Las tarifas seed se conservan como aproximadas hasta la visita de campo.
 - Registro de pasajero (#6): nombre, correo, celular a 10 dígitos y contraseña (8+ con letra y número); aviso de
   privacidad obligatorio (`privacy_accepted_at`). La cuenta nace `PENDING_VERIFICATION` con monedero en $0 y se activa
   con un enlace de 24 h que se confirma con un botón (no al abrirlo, para que los antivirus de correo no lo gasten).
