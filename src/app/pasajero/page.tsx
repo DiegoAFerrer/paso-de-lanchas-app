@@ -36,7 +36,14 @@ export default async function PassengerPage() {
           <LogoutButton />
         </div>
       </header>
+      <Link
+        href="/pasajero/qr"
+        className="bg-brand flex min-h-14 w-full items-center justify-center rounded-xl px-4 text-lg font-semibold text-white"
+      >
+        Mostrar mi QR
+      </Link>
 
+      <DocksLiveBoard initialStatus={initialStatus} />
       <DocksLiveBoard initialStatus={initialStatus} />
 
       <section aria-labelledby="passenger-shortcuts-heading" className="space-y-3">
