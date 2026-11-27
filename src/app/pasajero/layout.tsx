@@ -1,7 +1,6 @@
 import { House, QrCode, User, Wallet } from "lucide-react";
 
 import { BottomNav, type NavItem } from "@/components/navigation/bottom-nav";
-import { ComponentsShowcase } from "@/components/examples/components-showcase";
 
 const items: NavItem[] = [
   { href: "/pasajero", label: "Inicio", icon: <House className="size-5" />, exact: true },
@@ -15,7 +14,6 @@ export default function PassengerLayout({ children }: LayoutProps<"/pasajero">) 
     <>
       <div className="flex-1 pb-20">{children}</div>
       <BottomNav items={items} />
-      <ComponentsShowcase/>
     </>
   );
 }

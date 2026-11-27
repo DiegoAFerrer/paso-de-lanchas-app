@@ -13,7 +13,6 @@ import {
 
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
 import type { NavItem } from "@/components/navigation/bottom-nav";
-import { ComponentsShowcase } from "@/components/examples/components-showcase";
 
 const icon = "size-4";
 
@@ -35,11 +34,10 @@ const items: NavItem[] = [
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <>
-    <div className="flex flex-1 flex-col md:flex-row">
-      <SidebarNav title="Administración" items={items} />
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
-    <ComponentsShowcase/>
+      <div className="flex flex-1 flex-col md:flex-row">
+        <SidebarNav title="Administración" items={items} />
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
     </>
   );
 }
