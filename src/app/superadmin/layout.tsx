@@ -1,4 +1,4 @@
-import { Laptop, ScrollText, ShieldCheck } from "lucide-react";
+import { House, Laptop, ScrollText, ShieldCheck } from "lucide-react";
 
 import type { NavItem } from "@/components/navigation/bottom-nav";
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
@@ -7,7 +7,8 @@ import { Suspense } from "react";
 const icon = "size-4";
 
 const items: NavItem[] = [
-  { href: "/superadmin", label: "Cuentas", icon: <ShieldCheck className={icon} />, exact: true },
+  { href: "/superadmin", label: "Inicio", icon: <House className={icon} />, exact: true },
+  { href: "/superadmin/personal", label: "Personal", icon: <ShieldCheck className={icon} /> },
   { href: "/superadmin/computadoras", label: "Computadoras", icon: <Laptop className={icon} /> },
   { href: "/superadmin/bitacora", label: "Bitácora", icon: <ScrollText className={icon} /> },
 ];

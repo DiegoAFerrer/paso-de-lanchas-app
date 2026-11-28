@@ -9,6 +9,7 @@ import {
   Ticket,
   Users,
   Wallet,
+  House,
 } from "lucide-react";
 
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
@@ -17,19 +18,14 @@ import { Suspense } from "react";
 
 const icon = "size-4";
 
-// PROVISIONAL: sacadas de las pantallas del prototipo listadas en MODULOS_Y_RESPONSABLES.md.
-// Reemplazar cuando José pase las 10 secciones reales.
 const items: NavItem[] = [
-  { href: "/admin", label: "Operación", icon: <Anchor className={icon} />, exact: true },
+  { href: "/admin", label: "Inicio", icon: <House className={icon} />, exact: true },
+  { href: "/admin/operacion", label: "Operación", icon: <Anchor className={icon} /> },
   { href: "/admin/taquilla", label: "Taquilla", icon: <Ticket className={icon} /> },
   { href: "/admin/recargas", label: "Recargas", icon: <Wallet className={icon} /> },
-  { href: "/admin/corte-de-caja", label: "Corte de caja", icon: <Landmark className={icon} /> },
   { href: "/admin/flota", label: "Flota", icon: <Ship className={icon} /> },
-  { href: "/admin/choferes", label: "Choferes", icon: <Users className={icon} /> },
   { href: "/admin/tarifas", label: "Tarifas", icon: <DollarSign className={icon} /> },
   { href: "/admin/descuentos", label: "Descuentos", icon: <BadgePercent className={icon} /> },
-  { href: "/admin/horario-y-avisos", label: "Horario y avisos", icon: <Bell className={icon} /> },
-  { href: "/admin/reportes", label: "Reportes", icon: <ChartColumn className={icon} /> },
 ];
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
